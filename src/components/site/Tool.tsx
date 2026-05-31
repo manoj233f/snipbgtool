@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { ReactCompareSlider, ReactCompareSliderImage } from "react-compare-slider";
 import JSZip from "jszip";
-import { saveAs } from "file-saver";
+import fileSaver from "file-saver";
+const { saveAs } = fileSaver;
 import { toast } from "sonner";
 import {
   UploadCloud, Image as ImageIcon, Download, Loader2, Trash2, Play,
