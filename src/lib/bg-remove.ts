@@ -1,5 +1,3 @@
-import { removeBackground } from "@imgly/background-removal";
-
 export type OutputMode = "transparent" | "cutout" | "isolated";
 
 export interface ProcessOptions {
@@ -11,6 +9,7 @@ export interface ProcessOptions {
 }
 
 export async function processImage(file: File | Blob, options: ProcessOptions): Promise<Blob> {
+  const { removeBackground } = await import("@imgly/background-removal");
   const cutoutBlob = await removeBackground(file);
 
   if (options.mode === "transparent" && !options.backgroundImage && !options.backgroundColor) {
