@@ -78,13 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Crispr — Remove Backgrounds Instantly" },
+      { title: "Snip BG" },
       { name: "description", content: "Upload an image and get a clean, transparent cutout in seconds. Free, private, in-browser." },
-      { property: "og:title", content: "Crispr — Remove Backgrounds Instantly" },
-      { property: "og:description", content: "Free, private, in-browser background removal." },
+      { property: "og:title", content: "Snip BG" },
+      { property: "og:description", content: "Upload an image and get a clean, transparent cutout in seconds. Free, private, in-browser." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Snip BG" },
+      { name: "twitter:description", content: "Upload an image and get a clean, transparent cutout in seconds. Free, private, in-browser." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/661082de-6696-431d-9e72-1e781d5bdcc7/id-preview-73e133f4--82d8c39b-9a3f-4e79-87e7-9f003877fcbd.lovable.app-1780223160483.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/661082de-6696-431d-9e72-1e781d5bdcc7/id-preview-73e133f4--82d8c39b-9a3f-4e79-87e7-9f003877fcbd.lovable.app-1780223160483.png" },
     ],
     links: [
       {
