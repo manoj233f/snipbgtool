@@ -10,11 +10,9 @@ export function Footer() {
               <span className="w-9 h-9 rounded-xl bg-brand-teal grid place-items-center">
                 <Scissors className="w-4 h-4" />
               </span>
-              Crispr
+              snipbgtool
             </div>
-            <p className="mt-3 text-[color:var(--brand-light)] max-w-md">
-              Crisp cutouts. Zero clutter.
-            </p>
+            <p className="mt-3 text-[color:var(--brand-light)] max-w-md" />
           </div>
           <nav className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-[color:var(--brand-light)]">
             <a href="#" className="hover:text-white transition">About</a>
@@ -24,7 +22,7 @@ export function Footer() {
           </nav>
         </div>
         <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between text-xs text-[color:var(--brand-light)]/80 gap-2">
-          <span>© {new Date().getFullYear()} Crispr. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} snipbgtool. All rights reserved.</span>
           <span>Made with care — processed entirely in your browser.</span>
         </div>
       </div>

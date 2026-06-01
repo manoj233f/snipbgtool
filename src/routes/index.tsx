@@ -9,9 +9,9 @@ import { Footer } from "@/components/site/Footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Crispr — Remove Backgrounds Instantly" },
+      { title: "snipbgtool — Remove Backgrounds Instantly" },
       { name: "description", content: "Upload an image and get a clean, transparent cutout in seconds. Free, private, runs entirely in your browser." },
-      { property: "og:title", content: "Crispr — Remove Backgrounds Instantly" },
+      { property: "og:title", content: "snipbgtool — Remove Backgrounds Instantly" },
       { property: "og:description", content: "Free, private, AI-powered background removal." },
     ],
   }),
@@ -24,8 +24,8 @@ function Index() {
       <Navbar />
       <main>
         <Hero />
-        <HowItWorks />
         <Tool />
+        <HowItWorks />
         <FAQ />
       </main>
       <Footer />

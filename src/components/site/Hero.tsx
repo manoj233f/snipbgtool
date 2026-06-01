@@ -36,50 +36,7 @@ export function Hero() {
           </a>
         </div>
 
-        <BeforeAfterStrip />
       </div>
     </section>
-  );
-}
-
-function BeforeAfterStrip() {
-  const samples = [
-    { label: "Portraits", emoji: "👤", color: "from-[#C8D9E6] to-[#F5EFEB]" },
-    { label: "Products", emoji: "📦", color: "from-[#567C8D] to-[#C8D9E6]" },
-    { label: "Pets", emoji: "🐕", color: "from-[#F5EFEB] to-[#C8D9E6]" },
-  ];
-  return (
-    <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-      {samples.map((s) => (
-        <div
-          key={s.label}
-          className="group relative rounded-2xl bg-white shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden"
-        >
-          <div className={`relative h-56 bg-gradient-to-br ${s.color} grid place-items-center text-6xl`}>
-            <span className="absolute top-3 left-3 text-[10px] font-semibold tracking-wider uppercase bg-white/80 text-brand-dark rounded-full px-2 py-1">
-              Before
-            </span>
-            {s.emoji}
-          </div>
-          <div
-            className="relative h-56 grid place-items-center text-6xl"
-            style={{
-              backgroundImage:
-                "linear-gradient(45deg, #eaeaea 25%, transparent 25%), linear-gradient(-45deg, #eaeaea 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eaeaea 75%), linear-gradient(-45deg, transparent 75%, #eaeaea 75%)",
-              backgroundSize: "16px 16px",
-              backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
-            }}
-          >
-            <span className="absolute top-3 left-3 text-[10px] font-semibold tracking-wider uppercase bg-brand-teal text-white rounded-full px-2 py-1">
-              After
-            </span>
-            {s.emoji}
-          </div>
-          <div className="px-4 py-3 text-sm font-medium text-brand-dark text-left border-t border-brand-light/60">
-            {s.label}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

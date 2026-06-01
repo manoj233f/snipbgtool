@@ -8,12 +8,11 @@ export function Navbar() {
           <span className="w-9 h-9 rounded-xl bg-brand-dark text-white grid place-items-center">
             <Scissors className="w-4 h-4" />
           </span>
-          Crispr
+          snipbgtool
         </a>
         <nav className="hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
-          <a href="#how" className="hover:text-brand-dark transition-colors">How it works</a>
           <a href="#tool" className="hover:text-brand-dark transition-colors">Tool</a>
-          <a href="#features" className="hover:text-brand-dark transition-colors">Features</a>
+          <a href="#how" className="hover:text-brand-dark transition-colors">How it works</a>
           <a href="#faq" className="hover:text-brand-dark transition-colors">FAQ</a>
         </nav>
         <a

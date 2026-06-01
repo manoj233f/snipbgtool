@@ -5,8 +5,8 @@ import {
 const faqs = [
   { q: "What image formats are supported?", a: "JPG, PNG, and WEBP. We recommend PNG for highest quality, but everything is exported as a PNG." },
   { q: "Is there a file size limit?", a: "There's no hard limit, but extremely large images (over ~25MP) may be slow since processing runs in your browser." },
-  { q: "Are my images stored on your servers?", a: "No. Crispr runs the AI model locally in your browser. Your images never leave your device." },
-  { q: "Can I process multiple images at once?", a: "Yes. Drop in as many as you like and click \u201CProcess All\u201D. You can download the results individually or as a ZIP." },
+  { q: "Are my images stored on your servers?", a: "No. snipbgtool runs the AI model locally in your browser. Your images never leave your device." },
+  { q: "Can I process multiple images at once?", a: "Yes. Drop in as many as you like and click \u201CGenerate\u201D. You can download the results individually or as a ZIP." },
   { q: "What does \u201CIsolated\u201D mode do differently?", a: "Isolated places the cutout subject onto a clean, neutral (white by default) background — perfect for product shots and catalog-style images." },
 ];
 
