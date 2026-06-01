@@ -1,4 +1,4 @@
-import { Scissors } from "lucide-react";
+import logoAsset from "@/assets/snipbgtool-logo.png.asset.json";
 
 export function Footer() {
   return (
@@ -7,9 +7,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
             <div className="flex items-center gap-2 font-bold text-xl">
-              <span className="w-9 h-9 rounded-xl bg-brand-teal grid place-items-center">
-                <Scissors className="w-4 h-4" />
-              </span>
+              <img src={logoAsset.url} alt="snipbgtool logo" className="w-9 h-9 rounded-xl object-contain bg-white/5" />
               snipbgtool
             </div>
             <p className="mt-3 text-[color:var(--brand-light)] max-w-md" />
