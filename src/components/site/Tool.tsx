@@ -263,7 +263,7 @@ export function Tool() {
                   className="inline-flex items-center gap-2 rounded-xl bg-brand-teal text-white px-5 py-3 font-semibold hover:brightness-110 transition shadow-card disabled:opacity-50"
                   disabled={items.every((i) => i.status === "done" || i.status === "processing")}
                 >
-                  <Play className="w-4 h-4" /> Process All
+                  <Play className="w-4 h-4" /> Generate
                 </button>
                 <button
                   onClick={downloadAll}
