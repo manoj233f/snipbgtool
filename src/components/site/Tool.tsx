@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { ReactCompareSlider, ReactCompareSliderImage } from "react-compare-slider";
 import JSZip from "jszip";
@@ -7,7 +7,7 @@ const { saveAs } = fileSaver;
 import { toast } from "sonner";
 import {
   UploadCloud, Image as ImageIcon, Download, Loader2, Trash2, Play,
-  Layers, Scissors, Square, CheckCircle2, Clock, AlertCircle, X,
+  Layers, Scissors, Square, CheckCircle2, Clock, AlertCircle, Wand2, RotateCcw,
 } from "lucide-react";
 import { processImage, formatBytes, type OutputMode } from "@/lib/bg-remove";
 
@@ -18,6 +18,7 @@ interface Item {
   file: File;
   previewUrl: string;
   resultUrl?: string;
+  originalResultUrl?: string;
   status: Status;
   error?: string;
 }
@@ -31,10 +32,11 @@ const modeOptions: { id: OutputMode; label: string; desc: string; Icon: typeof L
 export function Tool() {
   const [items, setItems] = useState<Item[]>([]);
   const [mode, setMode] = useState<OutputMode>("transparent");
-  const [useCustomBg, setUseCustomBg] = useState(false);
-  const [bgColor, setBgColor] = useState("#FFFFFF");
-  const [bgImage, setBgImage] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [featherValue, setFeatherValue] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [refining, setRefining] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onDrop = useCallback((accepted: File[]) => {
     if (!accepted.length) return;
@@ -59,16 +61,47 @@ export function Tool() {
 
   const selected = useMemo(() => items.find((i) => i.id === selectedId) ?? items[0], [items, selectedId]);
 
+  // Reset edge refinement state when selection changes
+  useEffect(() => {
+    setFeatherValue(0);
+    setPreviewUrl(null);
+  }, [selectedId]);
+
+  // Debounced live preview of feathering
+  useEffect(() => {
+    if (!selected?.originalResultUrl) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (featherValue === 0) {
+      setPreviewUrl(null);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const blob = await featherEdges(selected.originalResultUrl!, featherValue);
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }, 150);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [featherValue, selected?.originalResultUrl]);
+
   async function runOne(item: Item) {
     setItems((prev) => prev.map((p) => (p.id === item.id ? { ...p, status: "processing" } : p)));
     try {
-      const blob = await processImage(item.file, {
-        mode,
-        backgroundColor: useCustomBg ? bgColor : null,
-        backgroundImage: useCustomBg && bgImage ? bgImage : null,
-      });
+      const blob = await processImage(item.file, { mode });
       const url = URL.createObjectURL(blob);
-      setItems((prev) => prev.map((p) => (p.id === item.id ? { ...p, status: "done", resultUrl: url } : p)));
+      setItems((prev) =>
+        prev.map((p) =>
+          p.id === item.id ? { ...p, status: "done", resultUrl: url, originalResultUrl: url } : p,
+        ),
+      );
     } catch (err) {
       console.error(err);
       setItems((prev) =>
@@ -101,7 +134,7 @@ export function Tool() {
     if (!item.resultUrl) return;
     const a = document.createElement("a");
     a.href = item.resultUrl;
-    a.download = item.file.name.replace(/\.[^.]+$/, "") + "-crispr.png";
+    a.download = item.file.name.replace(/\.[^.]+$/, "") + "-snipbgtool.png";
     a.click();
     toast.success("Download started");
   }
@@ -113,19 +146,46 @@ export function Tool() {
     for (const it of done) {
       const res = await fetch(it.resultUrl!);
       const blob = await res.blob();
-      zip.file(it.file.name.replace(/\.[^.]+$/, "") + "-crispr.png", blob);
+      zip.file(it.file.name.replace(/\.[^.]+$/, "") + "-snipbgtool.png", blob);
     }
     const out = await zip.generateAsync({ type: "blob" });
-    saveAs(out, "crispr-results.zip");
+    saveAs(out, "snipbgtool-results.zip");
     toast.success("ZIP download started");
   }
 
-  function handleBgImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setBgImage(reader.result as string);
-    reader.readAsDataURL(f);
+  async function applyRefinement() {
+    if (!selected?.originalResultUrl) return;
+    setRefining(true);
+    try {
+      const blob =
+        featherValue === 0
+          ? await (await fetch(selected.originalResultUrl)).blob()
+          : await featherEdges(selected.originalResultUrl, featherValue);
+      const url = URL.createObjectURL(blob);
+      setItems((prev) =>
+        prev.map((p) => (p.id === selected.id ? { ...p, resultUrl: url } : p)),
+      );
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      toast.success("Edge refinement applied");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to apply refinement");
+    } finally {
+      setRefining(false);
+    }
+  }
+
+  function resetRefinement() {
+    if (!selected?.originalResultUrl) return;
+    setFeatherValue(0);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setItems((prev) =>
+      prev.map((p) =>
+        p.id === selected.id ? { ...p, resultUrl: p.originalResultUrl } : p,
+      ),
+    );
   }
 
   return (
@@ -170,7 +230,7 @@ export function Tool() {
         {items.length > 0 && (
           <>
             {/* Options */}
-            <div className="mt-10 grid lg:grid-cols-2 gap-6">
+            <div className="mt-10">
               <div className="rounded-2xl bg-white p-6 shadow-card">
                 <h4 className="font-bold text-brand-dark text-lg">Output mode</h4>
                 <p className="text-sm text-brand-dark/60 mt-1">Choose how the result should look.</p>
@@ -194,60 +254,6 @@ export function Tool() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div className="rounded-2xl bg-white p-6 shadow-card">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-bold text-brand-dark text-lg">Custom background</h4>
-                    <p className="text-sm text-brand-dark/60 mt-1">Optional — replace the background.</p>
-                  </div>
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useCustomBg}
-                      onChange={(e) => setUseCustomBg(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-brand-light rounded-full peer peer-checked:bg-brand-teal relative transition">
-                      <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-                </div>
-                {useCustomBg && (
-                  <div className="mt-5 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium text-brand-dark w-28">Solid color</label>
-                      <input
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => {
-                          setBgColor(e.target.value);
-                          setBgImage(null);
-                        }}
-                        className="w-12 h-10 rounded-lg border border-brand-light cursor-pointer"
-                      />
-                      <span className="text-sm font-mono text-brand-dark/70">{bgColor}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium text-brand-dark w-28">Or image</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBgImageUpload}
-                        className="text-sm text-brand-dark/70 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand-light file:text-brand-dark file:font-medium hover:file:bg-brand-teal/20 file:cursor-pointer"
-                      />
-                      {bgImage && (
-                        <button onClick={() => setBgImage(null)} className="text-brand-dark/50 hover:text-brand-dark">
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    {bgImage && (
-                      <img src={bgImage} alt="bg preview" className="h-20 rounded-lg object-cover border border-brand-light" />
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -305,7 +311,7 @@ export function Tool() {
                             backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
                           }}
                         >
-                          <ReactCompareSliderImage src={selected.resultUrl} alt="Result" />
+                          <ReactCompareSliderImage src={previewUrl ?? selected.resultUrl} alt="Result" />
                         </div>
                       }
                       style={{ height: 520 }}
@@ -336,6 +342,64 @@ export function Tool() {
                     <span>Result →</span>
                   </div>
                 )}
+
+                {/* Edge Refinement */}
+                {selected.status === "done" && selected.originalResultUrl && (
+                  <div
+                    className="mt-6 rounded-xl bg-white p-6"
+                    style={{
+                      border: "1px solid #C8D9E6",
+                      boxShadow: "0 4px 20px rgba(47, 65, 86, 0.08)",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Wand2 className="w-5 h-5 text-brand-dark" />
+                      <h4 className="font-bold text-brand-dark text-lg">Edge Refinement</h4>
+                    </div>
+                    <p className="text-sm text-brand-teal mt-1">
+                      Drag the slider to soften harsh edges and remove leftover background fringe.
+                    </p>
+
+                    <div className="mt-5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold text-brand-dark">Soften Edges</label>
+                        <span className="inline-flex items-center justify-center min-w-12 px-2.5 py-1 rounded-full bg-brand-light text-brand-dark text-xs font-semibold">
+                          {featherValue}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={20}
+                        step={1}
+                        value={featherValue}
+                        onChange={(e) => setFeatherValue(Number(e.target.value))}
+                        className="feather-slider mt-3 w-full"
+                      />
+                      <div className="flex justify-between text-xs text-brand-dark/60 mt-1">
+                        <span>None</span>
+                        <span>Max</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={applyRefinement}
+                        disabled={refining}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-dark text-white px-5 py-3 font-semibold hover:brightness-110 transition disabled:opacity-60 min-h-[44px]"
+                      >
+                        {refining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                        Apply Refinement
+                      </button>
+                      <button
+                        onClick={resetRefinement}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-brand-teal border-2 border-brand-teal px-5 py-3 font-semibold hover:bg-brand-light/40 transition min-h-[44px]"
+                      >
+                        <RotateCcw className="w-4 h-4" /> Reset
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -357,6 +421,49 @@ export function Tool() {
         )}
       </div>
     </section>
+  );
+}
+
+async function featherEdges(src: string, radius: number): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = src;
+  });
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+
+  // Original RGBA
+  const origCanvas = document.createElement("canvas");
+  origCanvas.width = w;
+  origCanvas.height = h;
+  const origCtx = origCanvas.getContext("2d")!;
+  origCtx.drawImage(img, 0, 0);
+  const origData = origCtx.getImageData(0, 0, w, h);
+
+  // Blurred copy
+  const blurCanvas = document.createElement("canvas");
+  blurCanvas.width = w;
+  blurCanvas.height = h;
+  const blurCtx = blurCanvas.getContext("2d")!;
+  blurCtx.filter = `blur(${radius}px)`;
+  blurCtx.drawImage(img, 0, 0);
+  const blurData = blurCtx.getImageData(0, 0, w, h);
+
+  // Compose: keep original RGB, use blurred alpha
+  const out = origCtx.createImageData(w, h);
+  for (let i = 0; i < origData.data.length; i += 4) {
+    out.data[i] = origData.data[i];
+    out.data[i + 1] = origData.data[i + 1];
+    out.data[i + 2] = origData.data[i + 2];
+    out.data[i + 3] = blurData.data[i + 3];
+  }
+  origCtx.putImageData(out, 0, 0);
+
+  return await new Promise<Blob>((resolve, reject) =>
+    origCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
   );
 }
 
