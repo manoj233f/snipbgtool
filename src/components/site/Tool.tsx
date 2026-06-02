@@ -9,7 +9,7 @@ import {
   UploadCloud, Image as ImageIcon, Download, Loader2, Trash2, Play,
   Layers, Scissors, Square, CheckCircle2, Clock, AlertCircle, Wand2, RotateCcw,
 } from "lucide-react";
-import { processImage, formatBytes, type OutputMode } from "@/lib/bg-remove";
+import { processImage, formatBytes, preloadBgRemoval, type OutputMode } from "@/lib/bg-remove";
 
 type Status = "pending" | "processing" | "done" | "error";
 
@@ -37,6 +37,11 @@ export function Tool() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [refining, setRefining] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Warm up the AI model so first run feels instant
+  useEffect(() => {
+    preloadBgRemoval();
+  }, []);
 
   const onDrop = useCallback((accepted: File[]) => {
     if (!accepted.length) return;
@@ -102,6 +107,10 @@ export function Tool() {
           p.id === item.id ? { ...p, status: "done", resultUrl: url, originalResultUrl: url } : p,
         ),
       );
+      // Reset edge refinement for the freshly generated result
+      setFeatherValue(0);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     } catch (err) {
       console.error(err);
       setItems((prev) =>
@@ -114,7 +123,7 @@ export function Tool() {
   }
 
   async function processAll() {
-    const pending = items.filter((i) => i.status === "pending" || i.status === "error");
+    const pending = items.filter((i) => i.status !== "processing");
     if (!pending.length) {
       toast.info("Nothing left to process");
       return;
