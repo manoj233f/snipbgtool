@@ -263,6 +263,11 @@ export function Tool() {
                     );
                   })}
                 </div>
+                {items.some((i) => i.status === "done") && (
+                  <p className="text-xs text-brand-teal mt-3">
+                    Change mode and click Re-Generate to update your result.
+                  </p>
+                )}
               </div>
             </div>
 
