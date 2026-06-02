@@ -8,9 +8,54 @@ export interface ProcessOptions {
   backgroundImage?: string | null;
 }
 
+const imglyConfig = {
+  debug: false,
+  proxyToWorker: true,
+  model: "isnet_fp16" as const,
+  output: { format: "image/png" as const, quality: 1.0 },
+};
+
+let preloadPromise: Promise<void> | null = null;
+export function preloadBgRemoval() {
+  if (preloadPromise) return preloadPromise;
+  preloadPromise = (async () => {
+    try {
+      const mod = await import("@imgly/background-removal");
+      if (typeof mod.preload === "function") {
+        await mod.preload(imglyConfig);
+      }
+    } catch (e) {
+      console.warn("BG model preload failed", e);
+    }
+  })();
+  return preloadPromise;
+}
+
+async function resizeIfLarge(file: File | Blob, maxSize = 1024): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    const longest = Math.max(img.naturalWidth, img.naturalHeight);
+    if (longest <= maxSize) return file;
+    const scale = maxSize / longest;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("resize toBlob failed"))), "image/png"),
+    );
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export async function processImage(file: File | Blob, options: ProcessOptions): Promise<Blob> {
   const { removeBackground } = await import("@imgly/background-removal");
-  const cutoutBlob = await removeBackground(file);
+  const input = await resizeIfLarge(file, 1024);
+  const cutoutBlob = await removeBackground(input, imglyConfig);
 
   if (options.mode === "transparent" && !options.backgroundImage && !options.backgroundColor) {
     return cutoutBlob;
