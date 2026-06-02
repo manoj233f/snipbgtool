@@ -276,7 +276,7 @@ export function Tool() {
                 <button
                   onClick={processAll}
                   className="inline-flex items-center gap-2 rounded-xl bg-brand-teal text-white px-5 py-3 font-semibold hover:brightness-110 transition shadow-card disabled:opacity-50"
-                  disabled={items.every((i) => i.status === "done" || i.status === "processing")}
+                  disabled={items.some((i) => i.status === "processing")}
                 >
                   <Play className="w-4 h-4" /> Generate
                 </button>
@@ -298,12 +298,35 @@ export function Tool() {
                     Previewing: <span className="font-semibold text-brand-dark">{selected.file.name}</span>
                   </div>
                   {selected.status === "done" && (
-                    <button
-                      onClick={() => downloadOne(selected)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-brand-dark text-white px-5 py-2.5 text-sm font-semibold hover:brightness-110 transition"
-                    >
-                      <Download className="w-4 h-4" /> Download PNG
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => runOne(selected)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold transition hover:text-white"
+                        style={{
+                          border: "2px solid #567C8D",
+                          color: "#567C8D",
+                          borderRadius: 12,
+                          padding: "10px 24px",
+                          transition: "all 200ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#567C8D";
+                          e.currentTarget.style.color = "#ffffff";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "#567C8D";
+                        }}
+                      >
+                        <RotateCcw className="w-4 h-4" /> Re-Generate
+                      </button>
+                      <button
+                        onClick={() => downloadOne(selected)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-brand-dark text-white px-5 py-2.5 text-sm font-semibold hover:brightness-110 transition"
+                      >
+                        <Download className="w-4 h-4" /> Download PNG
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="rounded-xl overflow-hidden border border-brand-light/70 bg-white">
