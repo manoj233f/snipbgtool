@@ -472,36 +472,69 @@ async function featherEdges(src: string, radius: number): Promise<Blob> {
   const w = img.naturalWidth;
   const h = img.naturalHeight;
 
-  // Original RGBA
-  const origCanvas = document.createElement("canvas");
-  origCanvas.width = w;
-  origCanvas.height = h;
-  const origCtx = origCanvas.getContext("2d")!;
-  origCtx.drawImage(img, 0, 0);
-  const origData = origCtx.getImageData(0, 0, w, h);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
 
-  // Blurred copy
-  const blurCanvas = document.createElement("canvas");
-  blurCanvas.width = w;
-  blurCanvas.height = h;
-  const blurCtx = blurCanvas.getContext("2d")!;
-  blurCtx.filter = `blur(${radius}px)`;
-  blurCtx.drawImage(img, 0, 0);
-  const blurData = blurCtx.getImageData(0, 0, w, h);
+  // Extract alpha channel only
+  const alpha = new Uint8ClampedArray(w * h);
+  for (let i = 0; i < w * h; i++) alpha[i] = data[i * 4 + 3];
 
-  // Compose: keep original RGB, use blurred alpha
-  const out = origCtx.createImageData(w, h);
-  for (let i = 0; i < origData.data.length; i += 4) {
-    out.data[i] = origData.data[i];
-    out.data[i + 1] = origData.data[i + 1];
-    out.data[i + 2] = origData.data[i + 2];
-    out.data[i + 3] = blurData.data[i + 3];
-  }
-  origCtx.putImageData(out, 0, 0);
+  // Blur the alpha channel ONLY (RGB untouched -> no black halo)
+  const blurred = boxBlurAlpha(alpha, w, h, Math.max(1, Math.round(radius)));
 
+  // Write blurred alpha back; leave R,G,B exactly as they were
+  for (let i = 0; i < w * h; i++) data[i * 4 + 3] = blurred[i];
+
+  ctx.putImageData(imageData, 0, 0);
   return await new Promise<Blob>((resolve, reject) =>
-    origCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
   );
+}
+
+// Separable box blur on a single-channel array (3 passes ≈ Gaussian)
+function boxBlurAlpha(src: Uint8ClampedArray, w: number, h: number, radius: number): Uint8ClampedArray {
+  let buf = new Uint8ClampedArray(src);
+  const tmp = new Uint8ClampedArray(src.length);
+  for (let pass = 0; pass < 3; pass++) {
+    boxBlurH(buf, tmp, w, h, radius);
+    boxBlurV(tmp, buf, w, h, radius);
+  }
+  return buf;
+}
+
+function boxBlurH(src: Uint8ClampedArray, dst: Uint8ClampedArray, w: number, h: number, r: number) {
+  const win = r * 2 + 1;
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    let sum = 0;
+    for (let i = -r; i <= r; i++) sum += src[row + Math.min(w - 1, Math.max(0, i))];
+    for (let x = 0; x < w; x++) {
+      dst[row + x] = sum / win;
+      const addX = Math.min(w - 1, x + r + 1);
+      const subX = Math.max(0, x - r);
+      sum += src[row + addX] - src[row + subX];
+    }
+  }
+}
+
+function boxBlurV(src: Uint8ClampedArray, dst: Uint8ClampedArray, w: number, h: number, r: number) {
+  const win = r * 2 + 1;
+  for (let x = 0; x < w; x++) {
+    let sum = 0;
+    for (let i = -r; i <= r; i++) sum += src[Math.min(h - 1, Math.max(0, i)) * w + x];
+    for (let y = 0; y < h; y++) {
+      dst[y * w + x] = sum / win;
+      const addY = Math.min(h - 1, y + r + 1);
+      const subY = Math.max(0, y - r);
+      sum += src[addY * w + x] - src[subY * w + x];
+    }
+  }
 }
 
 function ItemCard({
